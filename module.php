@@ -266,7 +266,7 @@
 		 */
 		public function fortify(string $hostname, string $path = '', string $mode = 'max', $args = []): bool
 		{
-			if (!parent::fortify($hostname, $path, $mode)) {
+			if (!parent::fortify($hostname, $path, $mode, $args)) {
 				return false;
 			}
 			$docroot = $this->getAppRoot($hostname, $path);
