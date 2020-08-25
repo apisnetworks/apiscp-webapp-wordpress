@@ -149,14 +149,30 @@
 				$this->file_touch("${docroot}/.htaccess");
 			}
 
-			// by default, let's only open up ACLs to the bare minimum
-			$this->fortify($hostname, $path, 'max');
-			Wpcli::instantiateContexted($this->getAuthContext())->setConfiguration(['apache_modules' => ['mod_rewrite']]);
+			$wpcli = Wpcli::instantiateContexted($this->getAuthContext());
+			$wpcli->setConfiguration(['apache_modules' => ['mod_rewrite']]);
 
 			$ret = $this->execCommand($docroot, "rewrite structure --hard '/%%postname%%/'");
 			if (!$ret['success']) {
 				return error('failed to set rewrite structure, error: %s', coalesce($ret['stderr'], $ret['stdout']));
 			}
+
+			if (!empty($opts['cache']) && $this->install_plugin($hostname, $path, 'w3-total-cache')) {
+				$wpcli->exec($docroot, 'w3-total-cache option set pgcache.enabled true --type=boolean');
+				$wpcli->exec($docroot, 'w3-total-cache fix_environment');
+				$httxt = preg_replace(
+					'/^\s*AddType\s+.*$[\r\n]?/mi',
+					'',
+					$this->file_get_file_contents($docroot . '/.htaccess')
+				);
+				$this->file_put_file_contents($docroot . '/.htaccess', $httxt);
+			} else {
+				warn("Failed to install caching plugin - performance will be suboptimal");
+			}
+
+			// by default, let's only open up ACLs to the bare minimum
+			$this->fortify($hostname, $path, 'max');
+
 
 			$this->notifyInstalled($hostname, $path, $opts);
 
