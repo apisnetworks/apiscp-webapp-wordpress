@@ -975,10 +975,11 @@
 					'name' => $name
 				];
 
-				// @XXX plugin update --version=X.Y.Z NAME
-				// will fail if plugin is remotely hosted, check maximal version against upgrade version and
-				// omit version flag as needed
-				if ($version && $version !== $themeInfo['max']) {
+				// @XXX theme update --version=X.Y.Z NAME
+				// bad themes (better-wp-security) will induce false positives on remote versions
+				// if a version is specified, pass this explicitly to force an update
+				// see wp-cli issue #370
+				if ($version) {
 					$cmd .= ' --version=%(version)s';
 					$args['version'] = $version;
 				}
@@ -1086,9 +1087,10 @@
 					'name' => $name
 				];
 				// @XXX plugin update --version=X.Y.Z NAME
-				// will fail if plugin is remotely hosted, check maximal version against upgrade version and
-				// omit version flag as needed
-				if ($version && $version !== $pluginInfo['max']) {
+				// bad plugins (better-wp-security) will induce false positives on remote versions
+				// if a version is specified, pass this explicitly to force an update
+				// see wp-cli issue #370
+				if ($version) {
 					$cmd .= ' --version=%(version)s';
 					$args['version'] = $version;
 				}
