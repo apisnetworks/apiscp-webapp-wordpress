@@ -416,6 +416,7 @@
 			}
 
 			$pluginmeta = [];
+
 			foreach ($matches as $match) {
 				if (\in_array($match['status'], self::NON_UPDATEABLE_TYPES , true)) {
 					continue;
@@ -979,12 +980,26 @@
 				// bad themes (better-wp-security) will induce false positives on remote versions
 				// if a version is specified, pass this explicitly to force an update
 				// see wp-cli issue #370
+
+				$cmdTmp = $cmd;
 				if ($version) {
 					$cmd .= ' --version=%(version)s';
 					$args['version'] = $version;
 				}
+
 				$cmd .= ' ' . implode(' ', $flags);
 				$ret = $this->execCommand($docroot, $cmd, $args);
+
+				if (!$ret['success'] && $version) {
+					warn(
+						"Update failed for %s, falling back to versionless update: %s",
+						$name,
+						coalesce($ret['stderr'], $ret['stdout'])
+					);
+					$cmdTmp .= ' ' . implode(' ', $flags);
+					$ret = $this->execCommand($docroot, $cmdTmp, $args);
+				}
+
 				if (!$ret['success']) {
 					error("failed to update theme `%s': %s", $name, coalesce($ret['stderr'], $ret['stdout']));
 				}
@@ -1090,12 +1105,27 @@
 				// bad plugins (better-wp-security) will induce false positives on remote versions
 				// if a version is specified, pass this explicitly to force an update
 				// see wp-cli issue #370
+				//
+				// confirm with third party checks
+
+				$cmdTmp = $cmd;
 				if ($version) {
 					$cmd .= ' --version=%(version)s';
 					$args['version'] = $version;
 				}
 				$cmd .= ' ' . implode(' ', $flags);
 				$ret = $this->execCommand($docroot, $cmd, $args);
+
+				if (!$ret['success'] && $version) {
+					warn(
+						"Update failed for %s, falling back to versionless update: %s",
+						$name,
+						coalesce($ret['stderr'], $ret['stdout'])
+					);
+					$cmdTmp .= ' ' . implode(' ', $flags);
+					$ret = $this->execCommand($docroot, $cmdTmp, $args);
+				}
+
 				if (!$ret['success']) {
 					error("failed to update plugin `%s': %s", $name, coalesce($ret['stderr'], $ret['stdout']));
 				}
