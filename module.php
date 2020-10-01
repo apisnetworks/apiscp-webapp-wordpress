@@ -942,7 +942,6 @@
 			$skiplist = $this->getSkiplist($docroot, 'theme');
 
 			if (!$skiplist && !$themes && !$lock) {
-				$flags[] = implode(',', array_map('escapeshellarg', $skiplist));
 				$ret = $this->execCommand($docroot, 'theme update --all ' . implode(' ', $flags));
 				if (!$ret['success']) {
 					return error("theme update failed: `%s'", coalesce($ret['stderr'], $ret['stdout']));
@@ -1067,7 +1066,6 @@
 			$skiplist = $this->getSkiplist($docroot, 'plugin');
 
 			if (!$plugins && !$skiplist && !$lock) {
-				$flags[] = implode(',', array_map('escapeshellarg', $skiplist));
 				$ret = $this->execCommand($docroot, 'plugin update --all ' . implode(' ', $flags));
 				if (!$ret['success']) {
 					return error("plugin update failed: `%s'", coalesce($ret['stderr'], $ret['stdout']));
@@ -1549,10 +1547,10 @@
 				return error("App root for `%s'/`%s' does not exist", $hostname, $path);
 			}
 
-			$assets = $this->getSkiplist($approot, $type);
-			$assets[] = $type . ($type ? ':' : '') . $name;
+			$contents = implode("\n", $this->skiplistContents($approot));
+			$contents .= "\n" . $type . ($type ? ':' : '') . $name;
 
-			return $this->file_put_file_contents("${approot}/" . self::ASSET_SKIPLIST, implode("\n", $assets));
+			return $this->file_put_file_contents("${approot}/" . self::ASSET_SKIPLIST, ltrim($contents));
 		}
 
 		/**
@@ -1576,7 +1574,7 @@
 				return warn("%(type)s `%(asset)s' not present in skiplist", ['type' => $type, 'asset' => $name]);
 			}
 
-			$skiplist = $this->skiplistContents($approot);
+			$skiplist = array_flip($this->skiplistContents($approot));
 			unset($skiplist["${type}:${name}"],$skiplist[$name]);
 			return $this->file_put_file_contents("${approot}/" . self::ASSET_SKIPLIST, implode("\n", array_keys($skiplist)));
 		}
