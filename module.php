@@ -964,7 +964,8 @@
 				}
 
 				if (isset($theme['version'])) {
-					$version = $theme['version'];
+					warn("Versions temporarily suspended from theme updates - ignoring (see wp-cli/extension-command#263)");
+					//$version = $theme['version'];
 				} else if ($lock && !($version = $this->getNextVersionFromAsset($name, $themeInfo, $lock, 'theme'))) {
 					// see if 'next' will satisfy the requirement
 					continue;
