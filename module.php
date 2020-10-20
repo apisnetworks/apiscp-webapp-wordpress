@@ -752,7 +752,7 @@
 			);
 
 			if (!$ret['success']) {
-				return error("failed to obtain WP configuration for `%s'", $docroot);
+				return error("failed to obtain WP configuration for `%s': %s", $docroot, $ret['stderr']);
 			}
 
 			return \Util_PHP::unserialize(trim($ret['stdout']));
