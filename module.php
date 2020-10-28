@@ -487,7 +487,10 @@
 			}
 			$url = str_replace('%plugin%', $plugin, static::PLUGIN_VERSION_CHECK_URL);
 			$info = [];
-			if (false !== ($contents = file_get_contents($url))) {
+			$contents = silence(static function() use($url) {
+				return file_get_contents($url);
+			});
+			if (false !== $contents) {
 				$info = (array)json_decode($contents, true);
 				if (isset($info['versions'])) {
 					uksort($info['versions'], 'version_compare');
@@ -1298,7 +1301,10 @@
 			}
 			$url = str_replace('%theme%', $theme, static::THEME_VERSION_CHECK_URL);
 			$info = [];
-			if (false !== ($contents = file_get_contents($url))) {
+			$contents = silence(static function () use ($url) {
+				return file_get_contents($url);
+			});
+			if (false !== $contents) {
 				$info = (array)json_decode($contents, true);
 				if (isset($info['versions'])) {
 					uksort($info['versions'], 'version_compare');
