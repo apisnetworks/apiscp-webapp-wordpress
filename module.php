@@ -1548,7 +1548,7 @@
 		 * @param string|null $type
 		 * @return bool
 		 */
-		public function skip_asset(string $hostname, string $path = '', string $name, ?string $type): bool
+		public function skip_asset(string $hostname, string $path, string $name, ?string $type): bool
 		{
 			if (!$approot = $this->getAppRoot($hostname, $path)) {
 				return error("App root for `%s'/`%s' does not exist", $hostname, $path);
@@ -1569,7 +1569,7 @@
 		 * @param string|null $type
 		 * @return bool
 		 */
-		public function unskip_asset(string $hostname, string $path = '', string $name, ?string $type): bool
+		public function unskip_asset(string $hostname, string $path, string $name, ?string $type): bool
 		{
 			if (!$approot = $this->getAppRoot($hostname, $path)) {
 				return error("App root for `%s'/`%s' does not exist", $hostname, $path);
@@ -1584,6 +1584,17 @@
 			$skiplist = array_flip($this->skiplistContents($approot));
 			unset($skiplist["${type}:${name}"],$skiplist[$name]);
 			return $this->file_put_file_contents("${approot}/" . self::ASSET_SKIPLIST, implode("\n", array_keys($skiplist)));
+		}
+
+
+		public function asset_skipped(string $hostname, string $path, string $name, ?string $type): bool
+		{
+			if (!$approot = $this->getAppRoot($hostname, $path)) {
+				return error("App root for `%s'/`%s' does not exist", $hostname, $path);
+			}
+
+			$assets = $this->getSkiplist($approot, $type);
+			return isset($assets[$name]);
 		}
 
 		/**
