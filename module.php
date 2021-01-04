@@ -634,7 +634,7 @@
 				return error('invalid WP location');
 			}
 
-			return $this->assetManagerWrapper($docroot, 'theme', 'deactivate', $plugin);
+			return $this->assetManagerWrapper($docroot, 'theme', 'disable', $plugin);
 		}
 
 		/**
