@@ -14,12 +14,11 @@
 
 namespace Module\Support\Webapps\App\Type\Wordpress;
 
-use Opcenter\Filesystem;
+use Module\Support\Webapps\Traits\WebappUtilities;
 use Symfony\Component\Yaml\Yaml;
 
 class Wpcli {
-	use \apnscpFunctionInterceptorTrait;
-	use \ContextableTrait;
+	use WebappUtilities;
 
 	// primary domain document root
 	const BIN = '/usr/share/pear/wp-cli.phar';
@@ -52,7 +51,7 @@ class Wpcli {
 		}
 
 		if ($path) {
-			$cmd = '--path=%(path)s --skip-packages ' . $cmd;
+			$cmd = '--path=%(path)s ' . $cmd;
 			$args['path'] = $path;
 			$user = $this->getDocrootUser($path);
 		}
@@ -70,6 +69,12 @@ class Wpcli {
 		return $ret;
 	}
 
+	/**
+	 * Update WP-CLI configuration
+	 *
+	 * @param array $vals
+	 * @return bool
+	 */
 	public function setConfiguration(array $vals): bool
 	{
 		$path = $this->user_get_home() . '/' . self::CONFIG_PATH;
@@ -86,26 +91,4 @@ class Wpcli {
 		$yaml = array_merge((array)$yaml, $vals);
 		return $this->file_put_file_contents($path, Yaml::dump($yaml)) > 0;
 	}
-
-	protected function getDocrootUser(string $docroot): string
-	{
-		if (!($this->getAuthContext()->level & PRIVILEGE_SITE)) {
-			return $this->getAuthContext()->username;
-		}
-		$stat = $this->file_stat($docroot);
-		if (!$stat) {
-			return $this->getAuthContext()->username;
-		}
-		// don't change if system user
-		if ($stat['uid'] < \apnscpFunctionInterceptor::get_autoload_class_from_module('user')::MIN_UID) {
-			return $this->getAuthContext()->username;
-		}
-
-		if (!($username = $this->user_get_username_from_uid($stat['uid']))) {
-			return $this->getAuthContext()->username;
-		}
-
-		return $username;
-	}
-
 }

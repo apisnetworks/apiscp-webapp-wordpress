@@ -14,6 +14,8 @@
 	use Module\Support\Webapps\App\Loader;
 	use Module\Support\Webapps\App\Type\Wordpress\DefineReplace;
 	use Module\Support\Webapps\App\Type\Wordpress\Wpcli;
+	use Module\Support\Webapps\Composer;
+	use Module\Support\Webapps\ComposerWrapper;
 	use Module\Support\Webapps\DatabaseGenerator;
 	use Opcenter\Versioning;
 
@@ -436,7 +438,8 @@
 				$pluginmeta[$name] = [
 					'version' => $version,
 					'next'    => Versioning::nextVersion($versions, $version),
-					'max'     => $this->pluginInfo($name)['version'] ?? end($versions)
+					'max'     => $this->pluginInfo($name)['version'] ?? end($versions),
+					'active'  => $match['status'] !== 'inactive'
 				];
 				// dev version may be present
 				$pluginmeta[$name]['current'] = version_compare((string)array_get($pluginmeta, "${name}.max",
@@ -1648,19 +1651,69 @@
 					$this->get_reconfigurable($shostname, $spath, $sapp->getReconfigurables()),
 					array_flip($dapp::TRANSIENT_RECONFIGURABLES)
 				);
-				info("Reconfiguring %s", implode(", ", array_key_map(static function ($k, $v) { return "$k => $v"; }, $vals)));
+				info("Reconfiguring %s", implode(", ", array_key_map(static function ($k, $v) {
+					return "$k => $v";
+				}, $vals)));
 				$dapp->reconfigure($vals);
 				$this->updateConfiguration($dapproot, [
-					'DB_NAME' => $db->database,
-					'DB_USER' => $db->username,
+					'DB_NAME'     => $db->database,
+					'DB_USER'     => $db->username,
 					'DB_PASSWORD' => $db->password,
-					'DB_HOST' => $db->hostname,
+					'DB_HOST'     => $db->hostname,
 				]);
 				$db->autoRollback = false;
 				$cli = Wpcli::instantiateContexted($this->getAuthContext());
 				$cli->exec($dapproot, 'config shuffle-salts');
 				$dapp->reconfigure(['migrate' => $dhostname . '/' . $dpath]);
+
 				return null !== $this->webapp_discover($dhostname, $dpath);
 			});
+		}
+
+		/**
+		 * Install a WP-CLI package
+		 *
+		 * @param string $package
+		 * @return bool
+		 */
+		public function install_package(string $package): bool
+		{
+			$cli = ComposerWrapper::instantiateContexted($this->getAuthContext());
+			if (!$this->file_exists('~/.wp-cli/packages')) {
+				$this->file_create_directory('~/.wp-cli/packages', 493, true);
+				$cli->exec('~/.wp-cli/packages', 'init -n --name=local/wp-cli-packages -sdev --repository=https://wp-cli.org/package-index/');
+			}
+			$ret = $cli->exec('~/.wp-cli/packages', 'require %s', [$package]);
+
+
+			return $ret['success'] ?:
+				error("Failed to install %s: %s", $package, coalesce($ret['stderr'], $ret['stdout']));
+		}
+
+		/**
+		 * WP-CLI package installed
+		 *
+		 * @param string $package
+		 * @return bool
+		 */
+		public function package_installed(string $package): bool
+		{
+			$cli = Wpcli::instantiateContexted($this->getAuthContext());
+			$ret = $cli->exec(null, 'package path %s', [$package]);
+			return $ret['success'];
+		}
+
+		/**
+		 * Uninstall WP-CLI package
+		 *
+		 * @param string $package
+		 * @return bool
+		 */
+		public function uninstall_package(string $package): bool
+		{
+			$cli = ComposerWrapper::instantiateContexted($this->getAuthContext());
+			$ret = $cli->exec('~/.wp-cli/packages', 'remove %s', [$package]);
+			return $ret['success'] ?:
+				error("Failed to uninstall %s: %s", $package, coalesce($ret['stderr'], $ret['stdout']));
 		}
 	}
