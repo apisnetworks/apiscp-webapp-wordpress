@@ -134,7 +134,15 @@
 				}
 
 				\Util_HTTP::forwardNoProxy();
-				header("Location: " . $ret['stdout'], true, 302);
+				$parts = parse_url(rtrim($ret['stdout']));
+
+				$url = $parts['scheme'] . '://' . $parts['host'];
+				$htaccess = $this->getAppRoot() . '/.htaccess';
+				if (!$this->file_exists($htaccess) || false === strpos($this->file_get_file_contents($htaccess), ' /index.php')) {
+					$url .= '/index.php' ;
+				}
+				$url .= $parts['path'];
+				header("Location: " . $url, true, 302);
 				exit(0);
 			}
 
