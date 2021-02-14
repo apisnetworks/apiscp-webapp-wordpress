@@ -40,7 +40,7 @@
 			}
 			$instance = Wpcli::instantiateContexted($this->getAuthContext());
 			$ret = $instance->exec($this->app->getAppRoot(),
-				"search-replace --precise --regex '\b(?<!\.)%(olddomain)s%(oldpath)s\b' '%(newdomain)s%(newpath)s'", [
+				"search-replace --precise --skip-columns=guid --regex '\b(?<!\.)%(olddomain)s%(oldpath)s\b' '%(newdomain)s%(newpath)s'", [
 					'olddomain'   => array_get($this->getComponents(), 'host', $this->app->getHostname()),
 					'oldpath'     => rtrim(array_get($this->getComponents(), 'path', ''), '/'),
 					'newdomain'   => $sslhostname,

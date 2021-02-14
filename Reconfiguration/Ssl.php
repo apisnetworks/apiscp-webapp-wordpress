@@ -25,7 +25,7 @@ class Ssl extends SslParent
 		}
 
 		$instance = Wpcli::instantiateContexted($this->getAuthContext());
-		$ret = $instance->exec($this->app->getAppRoot(), 'search-replace --precise %(oldp)s://%(domain)s %(newp)s://%(domain)s', [
+		$ret = $instance->exec($this->app->getAppRoot(), 'search-replace --skip-columns=guid --precise %(oldp)s://%(domain)s %(newp)s://%(domain)s', [
 			'oldp' => $val ? 'http' : 'https',
 			'newp' => $val ? 'https' : 'http',
 			'domain' => $this->app->getHostname()
