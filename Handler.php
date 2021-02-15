@@ -107,6 +107,10 @@
 				\Lararia\Bootstrapper::minstrap();
 				echo view('@webapp(wordpress)::partials.plugin-table', ['app' => $this]);
 				exit;
+			} else if (isset($params['sso-check'])) {
+				\Lararia\Bootstrapper::minstrap();
+				echo view('@webapp(wordpress)::partials.actions.sso', ['app' => $this]);
+				exit;
 			}
 			if (isset($params['install-package'])) {
 				return $this->wordpress_install_package($params['install-package']);

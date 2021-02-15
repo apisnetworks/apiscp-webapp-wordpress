@@ -21,7 +21,15 @@
 
 		return fn + (checked ? 'unskip_asset' : 'skip_asset');
 	}
-
+	$(window).on('load', function () {
+		apnscp.render({
+			'sso-check': 1,
+			hostname: __WA_META.hostname,
+			path: __WA_META.path
+		}, '').done(function (html) {
+			$('#wpSsoPlaceholder').replaceWith(html);
+		});
+	});
 	$('#packageManager').on('change', ':input[data-asset]', function (event) {
 		event.preventDefault();
 		var checked = $(this).prop('checked');
