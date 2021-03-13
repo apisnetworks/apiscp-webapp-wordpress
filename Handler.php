@@ -30,16 +30,6 @@
 			'migrate', 'duplicate'
 		];
 
-		private $_stacks = array(
-			'security'    => array(
-				'disable-comments'
-			),
-			'performance' => array(
-				'w3-total-cache',
-				'wp-optimize'
-			)
-		);
-
 		public function recover(): bool
 		{
 			if (!$this->wordpress_disable_all_plugins($this->hostname, $this->path)) {
@@ -62,23 +52,6 @@
 
 				return $this->wordpress_enable_theme($this->hostname, $this->path, $theme) &&
 					info('Theme reset to %s', $theme);
-			}
-
-			return true;
-		}
-
-		public function install(): bool
-		{
-			if (!parent::install()) {
-				return false;
-			}
-
-			$opts = $this->getOptions();
-			if (isset($opts['security-stack'])) {
-				$this->installPlugins($this->_stacks['security']);
-			}
-			if (isset($options['performance-stack'])) {
-				$this->installPlugins($this->_stacks['performance']);
 			}
 
 			return true;
