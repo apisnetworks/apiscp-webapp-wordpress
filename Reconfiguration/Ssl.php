@@ -23,15 +23,20 @@ class Ssl extends SslParent
 		if (!parent::handle($val)) {
 			return false;
 		}
+		$this->callback(function () use ($val) {
+			$instance = Wpcli::instantiateContexted($this->getAuthContext());
+			$ret = $instance->exec($this->app->getAppRoot(),
+				'search-replace --skip-columns=guid --precise %(oldp)s://%(domain)s %(newp)s://%(domain)s', [
+					'oldp'   => $val ? 'http' : 'https',
+					'newp'   => $val ? 'https' : 'http',
+					'domain' => $this->app->getHostname()
+				]);
 
-		$instance = Wpcli::instantiateContexted($this->getAuthContext());
-		$ret = $instance->exec($this->app->getAppRoot(), 'search-replace --skip-columns=guid --precise %(oldp)s://%(domain)s %(newp)s://%(domain)s', [
-			'oldp' => $val ? 'http' : 'https',
-			'newp' => $val ? 'https' : 'http',
-			'domain' => $this->app->getHostname()
-		]);
+			return $ret['success'] ?: error("Failed to convert links to SSL: %s",
+				coalesce($ret['stderr'], $ret['stdout']));
+		});
 
-		return $ret['success'] ?: error("Failed to convert links to SSL: %s", coalesce($ret['stderr'], $ret['stdout']));
+		return true;
 	}
 }
 
