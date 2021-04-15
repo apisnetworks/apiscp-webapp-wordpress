@@ -31,4 +31,9 @@
 			$path = rtrim($path, '/');
 			return $this->wordpress_duplicate($this->app->getHostname(), $this->app->getPath(), $hostname, $path, []);
 		}
+
+		public function getValue()
+		{
+			return null;
+		}
 	}
