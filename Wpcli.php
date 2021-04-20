@@ -40,7 +40,7 @@ class Wpcli {
 		// client may override tz, propagate to bin
 		$tz = $this->getAuthContext()->timezone;
 		$cli = 'php -d display_errors=' . (is_debug() ? 'on' : 'off') . ' -d mysqli.default_socket=' . escapeshellarg(ini_get('mysqli.default_socket')) .
-			' -d date.timezone=' . $tz . ' -d memory_limit=128m ' . self::BIN;
+			' -d date.timezone=' . $tz . ' -d memory_limit=256m ' . self::BIN;
 		if (!is_array($args)) {
 			$args = array_slice(func_get_args(), 2);
 		}
