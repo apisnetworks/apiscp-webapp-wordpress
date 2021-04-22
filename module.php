@@ -173,7 +173,9 @@
 					warn("Failed to install caching plugin - performance will be suboptimal");
 				}
 			}
-
+			if (!$this->file_exists($docroot . '/wp-content/cache')) {
+				$this->file_create_directory($docroot . '/wp-content/cache');
+			}
 			// by default, let's only open up ACLs to the bare minimum
 			$this->fortify($hostname, $path, 'max');
 
