@@ -93,12 +93,16 @@
 				return $this->wordpress_uninstall_package($params['uninstall-package']);
 			}
 
-			if (isset($params['enable-sso'])) {
+			if (isset($params['install-sso'])) {
+				if (!$this->wordpress_install_package($params['install-sso'])) {
+					return false;
+				}
+			}
+			if (isset($params['enable-sso']) || isset($params['install-sso'])) {
 				$ret = Wpcli::instantiateContexted($this->getAuthContext())
 					->exec($this->getAppRoot(), 'login install --activate');
 				return $ret['success'] ?: error("Failed to activate SSO: %s", coalesce($ret['stderr'], $ret['stdout']));
 			}
-
 			if (isset($params['wordpress-sso'])) {
 				$admin = $this->wordpress_get_admin($this->getHostname(), $this->getPath());
 				if (!$admin) {

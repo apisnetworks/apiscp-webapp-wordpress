@@ -35,7 +35,7 @@
 	</div>
 
 @else
-	<button name="install-package" type="submit"
+	<button name="install-sso" type="submit"
 	        class="mb-3 btn btn-secondary " value="aaemnnosttv/wp-cli-login-command">
 		<i class="fa fa-magic"></i>
 		Enable SSO Support
