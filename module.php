@@ -17,6 +17,8 @@
 	use Module\Support\Webapps\Composer;
 	use Module\Support\Webapps\ComposerWrapper;
 	use Module\Support\Webapps\DatabaseGenerator;
+	use Module\Support\Webapps\Git;
+	use Module\Support\Webapps\MetaManager;
 	use Opcenter\Versioning;
 
 	/**
@@ -1667,6 +1669,17 @@
 				$cli = Wpcli::instantiateContexted($this->getAuthContext());
 				$cli->exec($dapproot, 'config shuffle-salts');
 				$dapp->reconfigure(['migrate' => $dhostname . '/' . $dpath]);
+
+				if ($dapp->hasGit()) {
+					$git = Git::instantiateContexted(
+						$this->getAuthContext(), [
+							$dapp->getAppRoot(),
+							MetaManager::factory($this->getAuthContext())->get($dapp->getDocumentRoot())
+						]
+					);
+					$git->remove();
+					$git->createRepository();
+				}
 
 				return null !== $this->webapp_discover($dhostname, $dpath);
 			});
