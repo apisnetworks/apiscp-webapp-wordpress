@@ -99,8 +99,9 @@
 				}
 			}
 			if (isset($params['enable-sso']) || isset($params['install-sso'])) {
+				// override Y/n prompt
 				$ret = Wpcli::instantiateContexted($this->getAuthContext())
-					->exec($this->getAppRoot(), 'login install --activate');
+					->exec($this->getAppRoot(), 'login install --yes --activate');
 				return $ret['success'] ?: error("Failed to activate SSO: %s", coalesce($ret['stderr'], $ret['stdout']));
 			}
 			if (isset($params['wordpress-sso'])) {
