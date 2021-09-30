@@ -1656,6 +1656,9 @@
 					array_flip($dapp::TRANSIENT_RECONFIGURABLES)
 				);
 				info("Reconfiguring %s", implode(", ", array_key_map(static function ($k, $v) {
+					if (is_bool($v)) {
+						$v = $v ? "true" : "false";
+					}
 					return "$k => $v";
 				}, $vals)));
 				$dapp->reconfigure($vals);
