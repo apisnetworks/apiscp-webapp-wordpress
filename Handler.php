@@ -120,10 +120,22 @@
 
 				$url = $parts['scheme'] . '://' . $parts['host'];
 				$htaccess = $this->getAppRoot() . '/.htaccess';
-				if (!$this->file_exists($htaccess) || false === strpos($this->file_get_file_contents($htaccess), ' /index.php')) {
-					$url .= '/index.php' ;
+
+				if ($this->file_exists($htaccess) && false !== strpos($this->file_get_file_contents($htaccess), '/index.php')) {
+					$url .= $parts['path'];
+				} else {
+					$url .= '/' . ltrim($this->getPath() . '/index.php', '/');
+					$loginPathNormalized = ltrim($parts['path'], '/');
+					$webappPathNormalized = ltrim($this->getPath(), '/');
+					if (0 === strpos($loginPathNormalized, $loginPathNormalized)) {
+						// strip common path component to insert /index.php dispatcher
+						$url .= substr($loginPathNormalized, strlen($webappPathNormalized));
+					} else {
+						warn("Pretty-print URLs not enabled in WordPress. SSO path likely incorrect");
+						$url .= $parts['path'];
+					}
 				}
-				$url .= $parts['path'];
+
 				header("Location: " . $url, true, 302);
 				exit(0);
 			}
