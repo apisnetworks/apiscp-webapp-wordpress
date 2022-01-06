@@ -29,23 +29,27 @@
 				</th>
 			</tr>
 			@endif
-			<tr>
+			<tr class="asset-row">
 				<td>
 					<abbr class="ui-action ui-action-label fa-question mr-2" data-toggle="popover"
 					      data-asset="{{ $asset['type'] }}" data-name="{{ $asset['name'] }}"
 					      data-title="{{ $asset['name'] }}" data-content="{{ strip_tags($asset['description']) }}"
 					>{{ $asset['name'] }}</abbr>
 				</td>
-				<td class="text-center">
+				<td class="text-center version">
 					{{ $asset['version'] }}
 				</td>
-				<td class="text-center">
+				<td class="text-center version-status">
 					@if (null === $asset['update_version'] )
 						<i class="fa fa-check text-success font-weight-bold" title="Asset up-to-date"></i>
 					@else
-						<i class="fa fa-exclamation-triangle font-weight-bold text-danger" title="Asset behind version"></i>
+						<i class="fa fa-exclamation-triangle font-weight-bold text-danger asset-behind" title="Asset behind version"></i>
 							{{ $asset['update_version'] }}
-
+						<button title="{{ "Update" }}" data-current="{{ $asset['update_version'] }}"
+						        data-asset="{{ $asset['type'] }}" name="update" value="{{ $asset['name'] }}"
+						        class="btn btn-sm btn-secondary">
+							<i class="ui-action ui-action-d-compact ui-action-update indicator"></i>
+						</button>
 					@endif
 				</td>
 				<td>
@@ -80,3 +84,5 @@
 		@endif
 	@endforeach
 </table>
+
+<i id="asset-current-template" class="d-none fa fa-check text-success font-weight-bold" title="Asset up-to-date"></i>

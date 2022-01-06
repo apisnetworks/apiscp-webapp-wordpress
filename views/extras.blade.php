@@ -21,6 +21,7 @@
 
 		return fn + (checked ? 'unskip_asset' : 'skip_asset');
 	}
+
 	$(window).on('load', function () {
 		apnscp.render({
 			'sso-check': 1,
@@ -30,6 +31,11 @@
 			$('#wpSsoPlaceholder').replaceWith(html);
 		});
 	});
+	function enqueueUpdate(name, type, version, o) {
+		var cmd = 'wordpress_update_' + type + 's',
+			args = [__WA_META.hostname, __WA_META.path, [name]];
+		return $.ajaxQueue(apnscp.cmd(cmd, args, $.extend({useQueue: true}, o || {})));
+	}
 	$('#packageManager').on('change', ':input[data-asset]', function (event) {
 		event.preventDefault();
 		var checked = $(this).prop('checked');
@@ -46,7 +52,33 @@
 		});
 	}).one('show.bs.collapse', function() {
 		apnscp.render({render: 'wp-assets', hostname: __WA_META.hostname, path: __WA_META.path}, '').done(function (html) {
-			$('#packageTable').html(html);
+			$('#packageTable').html(html).on('click', 'button[name=update]', function (e) {
+				e.stopPropagation();
+				var name = e.currentTarget.value,
+					type = e.currentTarget.dataset['asset'],
+					$indicator = $(e.currentTarget).children('.indicator'),
+					target = e.currentTarget;
+				o = {
+					indicator: $indicator
+				};
+
+				target.setAttribute('disabled', 'disabled');
+
+				enqueueUpdate(name, type, null, o).always(function (ret, status, jqxhr) {
+					target.removeAttribute('disabled');
+				}).fail(function (xhr, status, error) {
+					$indicator.removeClass('ui-ajax-loading').addClass('ui-ajax-error');
+					apnscp.ajaxError.apply(this, [xhr, status, error]);
+				}).done (function (data, status, xhr) {
+					$indicator.removeClass('ui-ajax-loading').addClass('ui-ajax-success');
+					$(target).closest('.asset-row').children('.version-status').empty()
+						.append($('#asset-current-template').clone().removeAttr('id').hide().removeClass('d-none').fadeIn('fast'))
+						.end().children('.version').empty().append(target.dataset['current']);
+					$(target).remove();
+
+				});
+				return false;
+			});
 			var lastPopover;
 			$('#packageManager [data-toggle="popover"]').popover().on('show.bs.popover', function () {
 				if (lastPopover && lastPopover !== $(this)) {
