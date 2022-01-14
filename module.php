@@ -114,7 +114,9 @@
 			if (!$this->generateNewConfiguration($hostname, $docroot, $dbCred)) {
 				info('removing temporary files');
 				$this->file_delete($docroot, true);
-				$dbCred->rollback();
+				if (!array_get($opts, 'hold')) {
+					$dbCred->rollback();
+				}
 				return false;
 			}
 
@@ -138,13 +140,16 @@
 				'title'    => $opts['title'],
 				'user'     => $opts['user'],
 				'password' => $opts['password'],
-				'proto'    => !empty($opts['ssl']) ? 'https://' : 'http://'
+				'proto'    => !empty($opts['ssl']) ? 'https://' : 'http://',
+				'mysqli81' => 'function_exists("mysqli_report") && mysqli_report(0);'
 			);
 			$ret = $this->execCommand($docroot, 'core %(mode)s --admin_email=%(email)s --skip-email ' .
-				'--url=%(proto)s%(url)s --title=%(title)s --admin_user=%(user)s ' .
+				'--url=%(proto)s%(url)s --title=%(title)s --admin_user=%(user)s --exec=%(mysqli81)s ' .
 				'--admin_password=%(password)s', $args);
 			if (!$ret['success']) {
-				$dbCred->rollback();
+				if (!array_get($opts, 'hold')) {
+					$dbCred->rollback();
+				}
 				return error('failed to create database structure: %s', coalesce($ret['stderr'], $ret['stdout']));
 			}
 
@@ -223,7 +228,7 @@
 				'mode'     => 'config',
 				'db'       => $dbcredentials->database,
 				'password' => $dbcredentials->password,
-				'user'     => $dbcredentials->username,
+				'user'     => $dbcredentials->username
 			);
 
 			$ret = $this->execCommand($docroot,
