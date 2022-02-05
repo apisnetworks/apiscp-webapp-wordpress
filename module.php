@@ -113,8 +113,8 @@
 
 			if (!$this->generateNewConfiguration($hostname, $docroot, $dbCred)) {
 				info('removing temporary files');
-				$this->file_delete($docroot, true);
 				if (!array_get($opts, 'hold')) {
+					$this->file_delete($docroot, true);
 					$dbCred->rollback();
 				}
 				return false;
