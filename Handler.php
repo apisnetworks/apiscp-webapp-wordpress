@@ -18,7 +18,7 @@
 
 	class Handler extends Unknown
 	{
-		const NAME = 'Wordpress';
+		const NAME = 'WordPress';
 		const ADMIN_PATH = '/wp-admin';
 		const LINK = 'https://wordpress.org/';
 
