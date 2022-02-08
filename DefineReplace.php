@@ -13,6 +13,8 @@
 
 namespace Module\Support\Webapps\App\Type\Wordpress;
 
+use PhpParser\ConstExprEvaluationException;
+use PhpParser\ConstExprEvaluator;
 use PhpParser\Node;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\Include_;
@@ -81,6 +83,55 @@ class DefineReplace {
 	 */
 	public function set(string $var, $new): self {
 		return $this->walkReplace($var, $new, true);
+	}
+
+	/**
+	 * Get value from AST
+	 *
+	 * @param string $var
+	 * @param        $default
+	 * @return mixed|null
+	 */
+	public function get(string $var, $default = null) {
+		/** @var Node $found */
+		$found = null;
+		$walker = $this->traverser->addVisitor(new class ($var, $found) extends \PhpParser\NodeVisitorAbstract
+		{
+			private string $var;
+			private ?Node\Arg $found;
+
+			public function __construct(string $var, &$found) {
+				$this->found = &$found;
+				$this->var = $var;
+			}
+
+			public function leaveNode(\PhpParser\Node $node)
+			{
+				if (!$node instanceof \PhpParser\Node\Expr\FuncCall || $node->name->toLowerString() !== 'define') {
+					return;
+				}
+				if ($node->args[0]->value->value !== $this->var) {
+					return;
+				}
+				$this->found = $node->args[1];
+				return NodeTraverser::STOP_TRAVERSAL;
+			}
+
+		});
+
+		$this->traverser->traverse($this->ast);
+
+		if (null === $found) {
+			return $default;
+		}
+
+		try {
+			return (new ConstExprEvaluator)->evaluateSilently($found->value);
+		} catch (ConstExprEvaluationException $expr) {
+			return (new \PhpParser\PrettyPrinter\Standard())->prettyPrint(
+				[$found]
+			);
+		}
 	}
 
 	/**
