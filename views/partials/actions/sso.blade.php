@@ -10,7 +10,7 @@
 		@endphp
 		@if ($pluginActive)
 			<button name="wordpress-sso" type="submit"
-			        class="btn btn-secondary " value="1">
+			        class="btn btn-secondary " value="1" @if (\Page_Renderer::externalOpener()) rel="external" formtarget="{{ \Page_Renderer::externalOpenerTarget()  }}" @endif >
 				<i class="fa fa-sign-in"></i>
 				Single Sign-on
 			</button>

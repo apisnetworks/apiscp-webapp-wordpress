@@ -127,7 +127,7 @@
 					$url .= '/' . ltrim($this->getPath() . '/index.php', '/');
 					$loginPathNormalized = ltrim($parts['path'], '/');
 					$webappPathNormalized = ltrim($this->getPath(), '/');
-					if (0 === strpos($loginPathNormalized, $loginPathNormalized)) {
+					if ($webappPathNormalized && 0 === strpos($loginPathNormalized, $loginPathNormalized)) {
 						// strip common path component to insert /index.php dispatcher
 						$url .= substr($loginPathNormalized, strlen($webappPathNormalized));
 					} else {
