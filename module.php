@@ -976,7 +976,7 @@
 				$version = null;
 				$name = $theme['name'] ?? $theme;
 				$themeInfo = $allthemeinfo[$name];
-				if (isset($skiplist[$name]) || $themeInfo['current']) {
+				if ((isset($skiplist[$name]) || $themeInfo['current']) && !array_get((array)$theme, 'force')) {
 					continue;
 				}
 
@@ -1070,7 +1070,7 @@
 		 *
 		 * @param string $hostname domain or subdomain
 		 * @param string $path     optional path within host
-		 * @param array  $plugins
+		 * @param array  $plugins  flat list of plugins or multi-dimensional of name, force, version
 		 * @return bool
 		 */
 		public function update_plugins(string $hostname, string $path = '', array $plugins = array()): bool
@@ -1102,7 +1102,7 @@
 				$version = null;
 				$name = $plugin['name'] ?? $plugin;
 				$pluginInfo = $allplugininfo[$name];
-				if (isset($skiplist[$name]) || $pluginInfo['current']) {
+				if ((isset($skiplist[$name]) || $pluginInfo['current']) && !array_get((array)$plugin, 'force')) {
 					continue;
 				}
 

@@ -33,7 +33,7 @@
 	});
 	function enqueueUpdate(name, type, version, o) {
 		var cmd = 'wordpress_update_' + type + 's',
-			args = [__WA_META.hostname, __WA_META.path, [name]];
+			args = [__WA_META.hostname, __WA_META.path, [{'name': name, 'force': true}]];
 		return $.ajaxQueue(apnscp.cmd(cmd, args, $.extend({useQueue: true}, o || {})));
 	}
 	$('#packageManager').on('change', ':input[data-asset]', function (event) {
