@@ -116,31 +116,58 @@
 				}
 
 				\Util_HTTP::forwardNoProxy();
-				$parts = parse_url(rtrim($ret['stdout']));
 
-				$url = $parts['scheme'] . '://' . $parts['host'];
-				$htaccess = $this->getAppRoot() . '/.htaccess';
-
-				if ($this->file_exists($htaccess) && false !== strpos($this->file_get_file_contents($htaccess), '/index.php')) {
-					$url .= $parts['path'];
-				} else {
-					$url .= '/' . ltrim($this->getPath() . '/index.php', '/');
-					$loginPathNormalized = ltrim($parts['path'], '/');
-					$webappPathNormalized = ltrim($this->getPath(), '/');
-					if ($webappPathNormalized && 0 === strpos($loginPathNormalized, $loginPathNormalized)) {
-						// strip common path component to insert /index.php dispatcher
-						$url .= substr($loginPathNormalized, strlen($webappPathNormalized));
-					} else {
-						warn("Pretty-print URLs not enabled in WordPress. SSO path likely incorrect");
-						$url .= $parts['path'];
-					}
-				}
-
+				$url = $this->discoverRedirectionUrl(rtrim($ret['stdout']));
 				header("Location: " . $url, true, 302);
 				exit(0);
 			}
 
 			return parent::handle($params);
+		}
+
+		/**
+		 * Ascertain redirection URL on rewrite presence
+		 *
+		 * @param string $redirect
+		 * @return string
+		 */
+		private function discoverRedirectionUrl(string $redirect): string
+		{
+			// WordPress can direct (foo.com) or indirect (foo.com/wp2 -> foo.com)
+			// Likewise WordPress can be pathless (foo.com) and pathed (foo.com/wp -> foo.com/wp)
+			// Lastly, WordPress can have a dispatcher/pretty-print URLs or not (foo.com/index.php/)
+			$parts = parse_url($redirect);
+			$url = $parts['scheme'] . '://' . $parts['host'];
+
+			$pathComponents = explode('/', $parts['path']);
+
+			$path = implode('/', array_slice($pathComponents, 0, -2));
+			// Try parsing the suggested docroot first
+			$roots = [$this->getDocumentRoot()];
+			if (($testRoot = $this->web_get_docroot($parts['host'], $path)) && $testRoot !== current($roots)) {
+				array_unshift($roots, $testRoot);
+			}
+			foreach ($roots as $root) {
+				$htaccess = $root . '/.htaccess';
+
+				if ($this->file_exists($htaccess) && false !== strpos($this->file_get_file_contents($htaccess),
+						'/index.php')) {
+					return $url . $parts['path'];
+				}
+
+				// No .htaccess
+				$loginPathNormalized = ltrim($parts['path'], '/');
+				$webappPathNormalized = ltrim($this->getPath(), '/');
+				if ($this->file_exists($root . '/wp-config.php')) {
+					warn("Pretty-print URLs not enabled in WordPress. SSO path likely incorrect");
+					// strip common path component to insert /index.php dispatcher
+					return $url . '/' . ltrim($this->getPath() . '/index.php', '/') . '/' . ltrim(substr($loginPathNormalized,
+							strlen($webappPathNormalized)), '/');
+				}
+			}
+
+
+			return $url . $parts['path'];
 		}
 
 
