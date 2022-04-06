@@ -93,82 +93,23 @@
 				return $this->wordpress_uninstall_package($params['uninstall-package']);
 			}
 
-			if (isset($params['install-sso'])) {
-				if (!$this->wordpress_install_package($params['install-sso'])) {
-					return false;
-				}
-			}
 			if (isset($params['enable-sso']) || isset($params['install-sso'])) {
+				$sso = Sso::instantiateContexted($this->getAuthContext(), [$this]);
+				if (isset($params['install-sso'])) {
+					if (!$this->wordpress_install_package($params['install-sso'])) {
+						return false;
+					}
+					defer($_, static function () use ($sso) {
+						$sso->handle();
+					});
+				}
 				// override Y/n prompt
-				$ret = Wpcli::instantiateContexted($this->getAuthContext())
-					->exec($this->getAppRoot(), 'login install --yes --activate');
-				return $ret['success'] ?: error("Failed to activate SSO: %s", coalesce($ret['stderr'], $ret['stdout']));
+				return $sso->enable();
 			}
 			if (isset($params['wordpress-sso'])) {
-				$admin = $this->wordpress_get_admin($this->getHostname(), $this->getPath());
-				if (!$admin) {
-					return error("SSO failed. Cannot lookup admin");
-				}
-				$ret = Wpcli::instantiateContexted($this->getAuthContext())
-					->exec($this->getAppRoot(), 'login create --url-only %s', [$admin]);
-				if (!$ret['success']) {
-					return error("SSO failed. Cannot create session: %s", coalesce($ret['stderr'], $ret['stdout']));
-				}
-
-				\Util_HTTP::forwardNoProxy();
-
-				$url = $this->discoverRedirectionUrl(rtrim($ret['stdout']));
-				header("Location: " . $url, true, 302);
-				exit(0);
+				return  Sso::instantiateContexted($this->getAuthContext(), [$this])->handle();
 			}
 
 			return parent::handle($params);
 		}
-
-		/**
-		 * Ascertain redirection URL on rewrite presence
-		 *
-		 * @param string $redirect
-		 * @return string
-		 */
-		private function discoverRedirectionUrl(string $redirect): string
-		{
-			// WordPress can direct (foo.com) or indirect (foo.com/wp2 -> foo.com)
-			// Likewise WordPress can be pathless (foo.com) and pathed (foo.com/wp -> foo.com/wp)
-			// Lastly, WordPress can have a dispatcher/pretty-print URLs or not (foo.com/index.php/)
-			$parts = parse_url($redirect);
-			$url = $parts['scheme'] . '://' . $parts['host'];
-
-			$pathComponents = explode('/', $parts['path']);
-
-			$path = implode('/', array_slice($pathComponents, 0, -2));
-			// Try parsing the suggested docroot first
-			$roots = [$this->getDocumentRoot()];
-			if (($testRoot = $this->web_get_docroot($parts['host'], $path)) && $testRoot !== current($roots)) {
-				array_unshift($roots, $testRoot);
-			}
-			foreach ($roots as $root) {
-				$htaccess = $root . '/.htaccess';
-
-				if ($this->file_exists($htaccess) && false !== strpos($this->file_get_file_contents($htaccess),
-						'/index.php')) {
-					return $url . $parts['path'];
-				}
-
-				// No .htaccess
-				$loginPathNormalized = ltrim($parts['path'], '/');
-				$webappPathNormalized = ltrim($this->getPath(), '/');
-				if ($this->file_exists($root . '/wp-config.php')) {
-					warn("Pretty-print URLs not enabled in WordPress. SSO path likely incorrect");
-					// strip common path component to insert /index.php dispatcher
-					return $url . '/' . ltrim($this->getPath() . '/index.php', '/') . '/' . ltrim(substr($loginPathNormalized,
-							strlen($webappPathNormalized)), '/');
-				}
-			}
-
-
-			return $url . $parts['path'];
-		}
-
-
 	}

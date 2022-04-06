@@ -28,7 +28,7 @@
 		<div class="dropdown-menu dropdown-menu-right dropdown-menu-form">
 			<button name="uninstall-package" type="submit"
 			        class="btn-block dropdown-item ui-action ui-action-delete warn ui-action-label"
-			        value="aaemnnosttv/wp-cli-login-command">
+			        value="{{ \Module\Support\Webapps\App\Type\Wordpress\Sso::PACKAGE_NAME }}">
 				Remove SSO Support
 			</button>
 		</div>
@@ -36,7 +36,7 @@
 
 @else
 	<button name="install-sso" type="submit"
-	        class="mb-3 btn btn-secondary " value="aaemnnosttv/wp-cli-login-command">
+	        class="mb-3 btn btn-secondary " value="{{ \Module\Support\Webapps\App\Type\Wordpress\Sso::PACKAGE_NAME }}">
 		<i class="fa fa-magic"></i>
 		Enable SSO Support
 	</button>
