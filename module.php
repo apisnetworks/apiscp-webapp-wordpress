@@ -1739,4 +1739,52 @@
 			return $ret['success'] ?:
 				error("Failed to uninstall %s: %s", $package, coalesce($ret['stderr'], $ret['stdout']));
 		}
+
+		/**
+		 * Apply WP-CLI directive
+		 *
+		 * @param string       $command  directive
+		 * @param array|string $args     formatted args
+		 * @param string       $hostname hostname
+		 * @param string       $path     subpath
+		 * @return mixed hash of paths or single arraycomprised of @see pman:run() + ['hostname', 'path']
+		 *
+		 * Sample usage:
+		 *
+		 * `wordpress:cli "plugin uninstall dolly"`
+		 * `wordpress:cli "plugin uninstall %s" ["dolly"]`
+		 * - Remove dolly plugin from all WP sites
+		 * `wordpress:cli "core verify-checksums" "" domain.com`
+		 * - Run verify-checksums on core distribution against domain.com
+		 * `wordpress:cli "--json plugin list"`
+		 * - Report all plugins encoded in JSON
+		 *
+		 */
+		public function cli(string $command, $args = [], string $hostname = null, string $path = ''): array
+		{
+			if (!$hostname) {
+				$apps = (new \Module\Support\Webapps\Finder($this->getAuthContext()))->getApplicationsByType($this->getModule());
+			} else {
+				$docroot = $this->getDocumentRoot($hostname, $path);
+				$apps = [$docroot => ['path' => $path, 'hostname' => $hostname]];
+			}
+
+			$wpcli = Wpcli::instantiateContexted($this->getAuthContext());
+			$processed = [];
+			foreach ($apps as $info) {
+				if (!$this->valid($info['hostname'], $info['path'] ?? '')) {
+					debug("%(host)/%(path)s is not valid %(type)s, skipping", [
+						'host' => $info['hostname'],
+						'path' => $info['path'] ?? '',
+						'type' => $this->getModule()
+					]);
+				}
+				$appRoot = $this->getAppRoot($info['hostname'], $info['path']);
+				$ret = $wpcli->exec($appRoot, $command, (array)$args);
+
+				$processed[$appRoot] = array_only($info, ['hostname', 'path']) + $ret;
+			}
+
+			return $hostname ? array_pop($processed) : $processed;
+		}
 	}
