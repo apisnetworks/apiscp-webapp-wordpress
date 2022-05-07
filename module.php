@@ -36,7 +36,7 @@
 		const VERSION_CHECK_URL = 'https://api.wordpress.org/core/version-check/1.7/';
 		const PLUGIN_VERSION_CHECK_URL = 'https://api.wordpress.org/plugins/info/1.0/%plugin%.json';
 		const THEME_VERSION_CHECK_URL = 'https://api.wordpress.org/themes/info/1.2/?action=theme_information&request[slug]=%theme%&request[fields][versions]=1';
-		const DEFAULT_VERSION_LOCK = 'none';
+		const DEFAULT_VERSION_LOCK = 'major';
 
 		protected $aclList = array(
 			'min' => array(
