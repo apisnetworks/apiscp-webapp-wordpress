@@ -27,7 +27,7 @@
 		const FEAT_RECOVERY = true;
 
 		const TRANSIENT_RECONFIGURABLES = [
-			'migrate', 'duplicate', 'debug'
+			'migrate', 'duplicate', 'debug', 'language'
 		];
 
 		public function recover(): bool
