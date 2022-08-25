@@ -1632,7 +1632,7 @@
 			return (bool)serial(function () use ($spath, $dpath, $dhostname, $shostname, $opts) {
 				$sapproot = $this->getAppRoot($shostname, $spath);
 				$dapproot = $this->getAppRoot($dhostname, $dpath);
-				if ($sapproot === $dapproot || 0 === strpos("${dapproot}/", $sapproot)) {
+				if ($sapproot === $dapproot || 0 === strpos("${dapproot}/", "${sapproot}/")) {
 					return error("Source `%(source)s' and target `%(target)s' are the same or nested",
 						['source' => $sapproot, 'target' => $dapproot]);
 				}
