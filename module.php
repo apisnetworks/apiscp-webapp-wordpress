@@ -210,7 +210,7 @@
 				$ftpcredentials['password'] = '';
 			}
 			$svc = \Opcenter\SiteConfiguration::shallow($this->getAuthContext());
-			$xtraPHP = (string)(new \Opcenter\Provisioning\ConfigurationWriter('webapps.wordpress.wp-config-extra', $svc))->compile([
+			$xtraPHP = (string)(new \Opcenter\Provisioning\ConfigurationWriter('@webapp(wordpress)::templates.wp-config-extra', $svc))->compile([
 				'svc' => $svc,
 				'afi' => $this->getApnscpFunctionInterceptor(),
 				'db'  => $dbcredentials,
@@ -1632,10 +1632,13 @@
 			return (bool)serial(function () use ($spath, $dpath, $dhostname, $shostname, $opts) {
 				$sapproot = $this->getAppRoot($shostname, $spath);
 				$dapproot = $this->getAppRoot($dhostname, $dpath);
+				// nesting directories is permitted, denesting will fail in checkDocroot() below
+				// otherwise add reciprocal strpos() check
 				if ($sapproot === $dapproot || 0 === strpos("${dapproot}/", "${sapproot}/")) {
 					return error("Source `%(source)s' and target `%(target)s' are the same or nested",
 						['source' => $sapproot, 'target' => $dapproot]);
 				}
+
 				if (!empty($opts['clean']) && is_dir($this->domain_fs_path($dapproot))) {
 					if ($this->webapp_valid($dhostname, $dpath)) {
 						$this->webapp_uninstall($dhostname, $dpath);

@@ -13,6 +13,7 @@
 
 namespace Module\Support\Webapps\App\Type\Wordpress\Reconfiguration;
 
+use Module\Support\Webapps;
 use Module\Support\Webapps\App\Reconfigurator;
 use Module\Support\Webapps\App\Type\Wordpress\DefineReplace;
 use Module\Support\Webapps\Contracts\ReconfigurableProperty;
@@ -41,11 +42,7 @@ class Language extends Reconfigurator implements ReconfigurableProperty
 		}
 
 		$dbConfig = $this->wordpress_db_config($this->app->getHostname(), $this->app->getPath());
-		$db = new \PDO('mysql:host=' . $dbConfig['host'] . ';dbname=' . $dbConfig['db'],
-			$dbConfig['user'],
-			$dbConfig['password'],
-			[\PDO::ERRMODE_EXCEPTION => true]
-		);
+		$db = Webapps::connectorFromCredentials($dbConfig);
 		$rs = $db->query('SELECT option_value FROM `' . $dbConfig['prefix'] . 'options` WHERE option_name = \'WPLANG\'');
 		return $rs->fetchColumn() ?: 'en_US';
 	}
