@@ -468,8 +468,8 @@
 			}
 
 			if (null === ($matches = json_decode($ret['stdout'], true))) {
-				error('Failed to decode %s output', $type);
-				return null;
+				dlog('Failed decode results: %s', var_export($ret, true));
+				return nerror('Failed to decode %s output', $type);
 			}
 
 			return $matches;
