@@ -462,6 +462,14 @@
 		protected function assetListWrapper(string $approot, string $type, array $fields): ?array {
 			$ret = $this->execCommand($approot,
 				$type . ' list --format=json --fields=%s', [implode(',', $fields)]);
+			// filter plugin garbage from Elementor, et al
+			// enqueued updates emits non-JSON in stdout
+			$line = strtok($ret['stdout'], "\n");
+			do {
+				if ($line[0] === '[') {
+					break;
+				}
+			} while (false !== ($line = strtok("\n")));
 			if (!$ret['success']) {
 				error('failed to get %s status: %s', $type, coalesce($ret['stderr'], $ret['stdout']));
 				return null;
