@@ -773,7 +773,7 @@
 					'path'   => $docroot,
 					'code'   => $code,
 					'socket' => ini_get('mysqli.default_socket')
-				)
+				), null, ['user' => $this->getDocrootUser($docroot)]
 			);
 
 			if (!$ret['success']) {
