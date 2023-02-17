@@ -14,12 +14,11 @@
 
 namespace Module\Support\Webapps\App\Type\Wordpress;
 
-use Module\Support\Webapps\Traits\WebappUtilities;
+use Module\Support\Webapps\PhpWrapper;
 use Symfony\Component\Yaml\Yaml;
 
-class Wpcli {
-	use WebappUtilities;
-
+class Wpcli extends PhpWrapper
+{
 	// primary domain document root
 	const BIN = '/usr/share/pear/wp-cli.phar';
 
@@ -35,18 +34,8 @@ class Wpcli {
 	 * @param array       $env
 	 * @return array|bool
 	 */
-	public function exec(?string $path, string $cmd, array $args = [], array $env = [])
+	public function exec(?string $path, string $cmd, array $args = [], array $env = []): array
 	{
-		// client may override tz, propagate to bin
-		$tz = $this->getAuthContext()->timezone;
-		$cli = 'php -d display_errors=' . (is_debug() ? 'on' : 'off') .
-			' -d mysqli.default_socket=' . escapeshellarg(ini_get('mysqli.default_socket')) .
-			' -d date.timezone=' . $tz . ' -d memory_limit=256m ' . self::BIN;
-		if (!is_array($args)) {
-			$args = array_slice(func_get_args(), 2);
-		}
-		$user = $this->getAuthContext()->username;
-
 		if (is_debug()) {
 			$cmd = '--debug ' . $cmd;
 		}
@@ -54,11 +43,9 @@ class Wpcli {
 		if ($path) {
 			$cmd = '--path=%(path)s ' . $cmd;
 			$args['path'] = $path;
-			$user = $this->getDocrootUser($path);
 		}
-		$cmd = $cli . ' ' . $cmd;
+		$ret = parent::exec($path, self::BIN . ' ' . $cmd, $args, ['SERVER_NAME' => $this->getAuthContext()->domain] + $env);
 		// $from_email isn't always set, ensure WP can send via wp-includes/pluggable.php
-		$ret = $this->pman_run($cmd, $args, ['SERVER_NAME' => $this->getAuthContext()->domain] + $env, ['user' => $user]);
 		if (0 === strncmp(coalesce($ret['stderr'], $ret['stdout']), 'Error:', 6)) {
 			// move stdout to stderr on error for consistency
 			$ret['success'] = false;
