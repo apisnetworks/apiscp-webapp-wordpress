@@ -34,7 +34,7 @@ class Sso
 
 		\Util_HTTP::forwardNoProxy();
 
-		$url = $this->discoverRedirectionUrl(rtrim($ret['stdout']));
+		$url = $this->discoverRedirectionUrl(trim($ret['stdout']));
 		header("Location: " . $url, true, 302);
 		exit(0);
 	}
