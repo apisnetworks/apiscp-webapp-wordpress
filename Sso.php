@@ -23,7 +23,7 @@ class Sso
 			return error("SSO failed. Cannot lookup admin");
 		}
 		$ret = Wpcli::instantiateContexted($this->getAuthContext())
-			->exec($this->app->getAppRoot(), 'login create --url-only %s', [$admin]);
+			->exec($this->app->getAppRoot(), '--skip-themes --skip-plugins login create --url-only %s', [$admin]);
 		if (!$ret['success']) {
 			if (false !== strpos($ret['stdout'], "requires version ") && $this->install()) {
 				return $this->handle();
@@ -47,7 +47,7 @@ class Sso
 	public function enable(): bool
 	{
 		$ret = Wpcli::instantiateContexted($this->getAuthContext())
-			->exec($this->app->getAppRoot(), 'login install --yes --activate');
+			->exec($this->app->getAppRoot(), '--skip-themes --skip-plugins login install --yes --activate');
 
 		return $ret['success'] ?: error("Failed to activate SSO: %s", coalesce($ret['stderr'], $ret['stdout']));
 	}
