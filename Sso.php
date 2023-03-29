@@ -23,7 +23,7 @@ class Sso
 			return error("SSO failed. Cannot lookup admin");
 		}
 		$ret = Wpcli::instantiateContexted($this->getAuthContext())
-			->exec($this->app->getAppRoot(), '--skip-themes --skip-plugins login create --url-only %s', [$admin]);
+			->exec($this->app->getAppRoot(), '--skip-themes login create --url-only %s', [$admin]);
 		if (!$ret['success']) {
 			if (false !== strpos($ret['stdout'], "requires version ") && $this->install()) {
 				return $this->handle();
