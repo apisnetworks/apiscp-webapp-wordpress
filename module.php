@@ -14,7 +14,6 @@
 	use Module\Support\Webapps\App\Loader;
 	use Module\Support\Webapps\App\Type\Wordpress\DefineReplace;
 	use Module\Support\Webapps\App\Type\Wordpress\Wpcli;
-	use Module\Support\Webapps\Composer;
 	use Module\Support\Webapps\ComposerWrapper;
 	use Module\Support\Webapps\DatabaseGenerator;
 	use Module\Support\Webapps\Git;
@@ -767,13 +766,8 @@
 				return error('failed to determine WP');
 			}
 			$code = 'ob_start(); register_shutdown_function(static function() { global $table_prefix; file_put_contents("php://fd/3", serialize(array("user" => DB_USER, "password" => DB_PASSWORD, "db" => DB_NAME, "host" => DB_HOST, "prefix" => $table_prefix))); ob_get_level() && ob_clean(); die(); }); include("./wp-config.php"); die();';
-			$cmd = 'cd %(path)s && php -d mysqli.default_socket=%(socket)s -r %(code)s 3>&1-';
-			$ret = $this->pman_run($cmd,
-				array(
-					'path'   => $docroot,
-					'code'   => $code,
-					'socket' => ini_get('mysqli.default_socket')
-				), null, ['user' => $this->getDocrootUser($docroot)]
+			$ret = \Module\Support\Webapps\PhpWrapper::instantiateContexted($this->getAuthContextFromDocroot($docroot))->exec(
+				$docroot, '-r %(code)s 3>&1-', ['code' => $code],
 			);
 
 			if (!$ret['success']) {
@@ -1450,10 +1444,11 @@
 			}
 			$path = $tmp = $docroot;
 			// WP can allow relocation of assets, look for them
-			$ret = $this->pman_run('cd %(docroot)s && php -r %(code)s', [
-				'docroot' => $docroot,
-				'code'    => 'set_error_handler(function() { echo defined("WP_CONTENT_DIR") ? constant("WP_CONTENT_DIR") : dirname(__FILE__); die(); }); include("./wp-config.php"); trigger_error("");define("ABS_PATH", "/dev/null");'
-			], null, ['user' => $this->getDocrootUser($docroot)]);
+			$ret = \Module\Support\Webapps\PhpWrapper::instantiateContexted($this->getAuthContextFromDocroot($docroot))->exec(
+				$docroot, '-r %(code)s', [
+					'code' => 'set_error_handler(function() { echo defined("WP_CONTENT_DIR") ? constant("WP_CONTENT_DIR") : dirname(__FILE__); die(); }); include("./wp-config.php"); trigger_error("");define("ABS_PATH", "/dev/null");'
+				]
+			);
 
 			if ($ret['success']) {
 				$tmp = $ret['stdout'];
