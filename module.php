@@ -193,7 +193,7 @@
 
 		protected function execCommand(?string $path, string $cmd, array $args = [], array $env = [])
 		{
-			return Wpcli::instantiateContexted($this->getAuthContext())->exec($path, $cmd, $args, $env);
+			return Wpcli::instantiateContexted($this->getAuthContextFromDocroot($path ?? \Web_Module::MAIN_DOC_ROOT))->exec($path, $cmd, $args, $env);
 		}
 
 		protected function generateNewConfiguration(string $domain, string $docroot, DatabaseGenerator $dbcredentials, array $ftpcredentials = array()): bool
@@ -1193,7 +1193,7 @@
 
 			if (!$ret['success']) {
 				$output = coalesce($ret['stderr'], $ret['stdout']);
-				if (0 === strncmp($output, 'Error: Download failed.', 23)) {
+				if (str_starts_with($output, 'Error: Download failed.')) {
 					return warn('Failed to fetch update - retry update later: %s', $output);
 				}
 
