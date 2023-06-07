@@ -15,6 +15,7 @@
 	namespace Module\Support\Webapps\App\Type\Wordpress\Reconfiguration;
 
 	use Module\Support\Webapps\App\Reconfigurator;
+	use Module\Support\Webapps\App\Type\Wordpress\DefineReplace;
 	use Module\Support\Webapps\App\Type\Wordpress\Wpcli;
 	use Module\Support\Webapps\Contracts\ReconfigurableProperty;
 
@@ -29,11 +30,11 @@
 		{
 			[$hostname, $path] = explode('/', $val . '/', 2);
 			$path = rtrim($path, '/');
-			$sslhostname = $this->web_normalize_hostname($hostname);
+			$newHostname = $this->web_normalize_hostname($hostname);
 
 			if (array_get($this->getComponents(), 'scheme', 'http') === 'https' &&
 				$this->ssl_contains_cn($hostname) &&
-				!$this->letsencrypt_append($sslhostname))
+				!$this->letsencrypt_append($newHostname))
 			{
 				// SSL certificate contains hostname, not a CF proxy
 				return error("Failed SSL issuance");
@@ -41,19 +42,31 @@
 			$instance = Wpcli::instantiateContexted($this->getAuthContext());
 			$ret = $instance->exec($this->app->getAppRoot(),
 				"search-replace --precise --skip-columns=guid --regex '\b(?<!\.)%(olddomain)s%(oldpath)s\b' '%(newdomain)s%(newpath)s'", [
-					'olddomain'   => array_get($this->getComponents(), 'host', $this->app->getHostname()),
-					'oldpath'     => rtrim(array_get($this->getComponents(), 'path', ''), '/'),
-					'newdomain'   => $sslhostname,
-					'newpath'     => $path ? "/${path}" : $path
+					'olddomain'   => $oldHostname = preg_quote(array_get($this->getComponents(), 'host', $this->app->getHostname())),
+					'oldpath'     => $oldPath = preg_quote(rtrim(array_get($this->getComponents(), 'path', ''), '/')),
+					'newdomain'   => $newHostname,
+					'newpath'     => $newPath = ($path ? "/${path}" : $path)
 				]);
 
 			if (!array_get($ret, 'success', false)) {
 				return error(coalesce($ret['stderr'], $ret['stdout']));
 			}
+
+			$file = $this->app->getAppRoot() . '/wp-config.php';
+			$definer = DefineReplace::instantiateContexted($this->getAuthContext(), [$file]);
+			foreach (['WP_SITEURL', 'WP_HOME'] as $constant) {
+				if (!$val = $definer->get($constant)) {
+					continue;
+				}
+				$definer->replace($constant, preg_replace('}\b(?<!\.)' . $oldHostname . $oldPath . '\b}', $newHostname . $newPath, $val));
+			}
+			$definer->save();
+
 			$this->app->getAppMeta()->replace([
 				'hostname' => $hostname,
 				'path'     => $path
 			]);
+
 			return true;
 		}
 

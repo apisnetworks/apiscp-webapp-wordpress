@@ -21,7 +21,7 @@ use PhpParser\Node\Expr\Include_;
 use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt;
-use PhpParser\NodeTraverser;
+use PhpParser\NodeFinder;
 
 /**
  * Class AST
@@ -94,36 +94,20 @@ class DefineReplace {
 	 */
 	public function get(string $var, $default = null) {
 		/** @var Node $found */
-		$found = null;
-		$walker = $this->traverser->addVisitor(new class ($var, $found) extends \PhpParser\NodeVisitorAbstract
-		{
-			private string $var;
-			private ?Node\Arg $found;
-
-			public function __construct(string $var, &$found) {
-				$this->found = &$found;
-				$this->var = $var;
+		$nodeFinder = new NodeFinder;
+		$result = $nodeFinder->findFirst($this->ast, function (Node $node) use ($var) {
+			if (!$node instanceof \PhpParser\Node\Expr\FuncCall || $node->name->toLowerString() !== 'define') {
+				return false;
 			}
 
-			public function leaveNode(\PhpParser\Node $node)
-			{
-				if (!$node instanceof \PhpParser\Node\Expr\FuncCall || $node->name->toLowerString() !== 'define') {
-					return;
-				}
-				if ($node->args[0]->value->value !== $this->var) {
-					return;
-				}
-				$this->found = $node->args[1];
-				return NodeTraverser::STOP_TRAVERSAL;
-			}
-
+			return $node->args[0]->value->value === $var;
 		});
 
-		$this->traverser->traverse($this->ast);
-
-		if (null === $found) {
+		if (!$result) {
 			return $default;
 		}
+
+		$found = $result->args[1];
 
 		try {
 			return (new ConstExprEvaluator)->evaluateSilently($found->value);
@@ -174,6 +158,7 @@ class DefineReplace {
 				if (!$node instanceof \PhpParser\Node\Expr\FuncCall || $node->name->toLowerString() !== 'define') {
 					return;
 				}
+
 				if ($node->args[0]->value->value !== $this->duo[0]) {
 					return;
 				}
