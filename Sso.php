@@ -24,19 +24,47 @@ class Sso
 		}
 		$ret = Wpcli::instantiateContexted($this->getAuthContext())
 			->exec($this->app->getAppRoot(), '--skip-themes login create --url-only %s', [$admin]);
-		if (!$ret['success']) {
-			if (false !== strpos($ret['stdout'], "requires version ") && $this->install()) {
-				return $this->handle();
+		$magic = trim($ret['stdout']);
+		if (!preg_match(\Regex::URL, $magic)) {
+			// garbage output, possibly requiring wp-cli-login-command update
+			// let's try it again
+			$oldVersion = $this->loginCommandVersion();
+			$ret = Wpcli::instantiateContexted($this->getAuthContext())->
+				exec($this->app->getAppRoot(), 'package update %s', [self::PACKAGE_NAME]);
+
+			if ($ret['success']) {
+				info("Updating %s", self::PACKAGE_NAME);
+				$this->enable();
 			}
 
+			if ($this->loginCommandVersion() === $oldVersion) {
+				return error("Failed to upgrade %(package)s: %(err)s", [
+					'package' => self::PACKAGE_NAME, 'err' => coalesce($ret['stderr'], $ret['stdout'])
+				]);
+			}
+		}
+		if (!$ret['success']) {
 			return error("SSO failed. Cannot create session: %s", coalesce($ret['stderr'], $ret['stdout']));
 		}
 
 		\Util_HTTP::forwardNoProxy();
 
-		$url = $this->discoverRedirectionUrl(trim($ret['stdout']));
+		$url = $this->discoverRedirectionUrl($magic);
 		header("Location: " . $url, true, 302);
 		exit(0);
+	}
+
+	private function loginCommandVersion(): ?string
+	{
+		$ret = Wpcli::instantiateContexted($this->getAuthContext())->exec($this->app->getAppRoot(),
+			'package list --format=json ');
+		foreach ((array)json_decode($ret['stdout'], true) as $item) {
+			if ($item['name'] === self::PACKAGE_NAME) {
+				return $item['version'];
+			}
+		};
+
+		return null;
 	}
 
 	public function install(): bool
