@@ -13,6 +13,7 @@
 
 namespace Module\Support\Webapps\App\Type\Wordpress;
 
+use Module\Support\Php\TreeWalker;
 use PhpParser\ConstExprEvaluationException;
 use PhpParser\ConstExprEvaluator;
 use PhpParser\Node;
@@ -22,6 +23,7 @@ use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt;
 use PhpParser\NodeFinder;
+use PhpParser\NodeTraverser;
 
 /**
  * Class AST
@@ -29,70 +31,17 @@ use PhpParser\NodeFinder;
  * @package Module\Support\Webapps\App\Type\Wordpress
  *
  */
-class DefineReplace {
-	use \apnscpFunctionInterceptorTrait;
-	use \ContextableTrait;
-
-	/**
-	 * @var \PhpParser\Node\Stmt[]
-	 */
-	protected $ast;
-	/**
-	 * @var \PhpParser\NodeTraverser
-	 */
-	protected $traverser;
-
-	/** @var string filename */
-	protected $file;
-	/**
-	 * Util_AST constructor.
-	 *
-	 * @param string $file
-	 * @throws \ArgumentError
-	 * @throws \PhpParser\Error
-	 */
-	protected function __construct(string $file)
-	{
-		if (!$this->file_exists($file)) {
-			throw new \ArgumentError(\ArgumentFormatter::format("Target file %s does not exist", [$file]));
-		}
-		$code = $this->file_get_file_contents($this->file = $file);
-		$parser = (new \PhpParser\ParserFactory)->create(\PhpParser\ParserFactory::PREFER_PHP7);
-		$this->ast = $parser->parse($code);
-		$this->traverser = new \PhpParser\NodeTraverser();
-	}
-
-	/**
-	 * Replace matching define() rules
-	 *
-	 * @param string $var search variable
-	 * @param mixed  $new replacement value
-	 * @return self
-	 */
-	public function replace(string $var, $new): self
-	{
-		return $this->walkReplace($var, $new, false);
-	}
-
-	/**
-	 * Set matching define() statements or add
-	 *
-	 * @param string $var search variable
-	 * @param mixed  $new replacement value
-	 * @return self
-	 */
-	public function set(string $var, $new): self {
-		return $this->walkReplace($var, $new, true);
-	}
-
+class DefineReplace extends TreeWalker
+{
 	/**
 	 * Get value from AST
 	 *
 	 * @param string $var
-	 * @param        $default
+	 * @param mixed $default
 	 * @return mixed|null
 	 */
-	public function get(string $var, $default = null) {
+	public function get(string $var, mixed $default = null): mixed
+	{
 		/** @var Node $found */
 		$nodeFinder = new NodeFinder;
 		$result = $nodeFinder->findFirst($this->ast, function (Node $node) use ($var) {
@@ -119,24 +68,45 @@ class DefineReplace {
 	}
 
 	/**
+	 * @{@inheritDoc}
+	 */
+	public function replace(string $var, mixed $new): self
+	{
+		return $this->walkReplace($var, $new, false);
+	}
+
+	/**
+	 * @{@inheritDoc}
+	 */
+	public function set(string $var, mixed $new): self
+	{
+		return $this->walkReplace($var, $new, true);
+	}
+
+	/**
 	 * Walk tree applying substitution rules
 	 *
 	 * @param string $var
-	 * @param        $new
+	 * @param mixed $new
 	 * @param bool   $append append if not found
 	 * @return $this
 	 */
-	private function walkReplace(string $var, $new, bool $append = false): self
+	protected function walkReplace(string $var, mixed $new, bool $append = false): self
 	{
-		$this->traverser->addVisitor(new class($var, $new, $append) extends \PhpParser\NodeVisitorAbstract {
+		$normalizer = $this->inferType(...);
+		$traverser = new NodeTraverser;
+
+		$traverser->addVisitor(new class($var, $new, $append, $normalizer) extends \PhpParser\NodeVisitorAbstract {
 			protected $duo;
 			protected $count = 0;
 			protected $append = false;
+			protected \Closure $normalizer;
 
-			public function __construct($var, $replacement, $append)
+			public function __construct($var, $replacement, $append, $normalizer)
 			{
 				$this->duo = [$var, $replacement];
 				$this->append = $append;
+				$this->normalizer = $normalizer;
 			}
 
 			public function leaveNode(\PhpParser\Node $node)
@@ -149,7 +119,7 @@ class DefineReplace {
 							new Name('define'),
 							[
 								new String_($this->duo[0]),
-								$this->inferType($this->duo[1])
+								($this->normalizer)($this->duo[1])
 							]
 						))
 					], [$node]);
@@ -163,39 +133,12 @@ class DefineReplace {
 					return;
 				}
 				$this->count++;
-				$node->args[1] = $this->inferType($this->duo[1]);
-			}
-
-			private function inferType($type): \PhpParser\NodeAbstract
-			{
-				return \PhpParser\BuilderHelpers::normalizeValue($this->duo[1]);
+				$node->args[1] = ($this->normalizer)($this->duo[1]);
 			}
 
 		});
 
+		$traverser->traverse($this->ast);
 		return $this;
 	}
-
-	/**
-	 * Generate configuration
-	 *
-	 * @return string
-	 */
-	public function __toString()
-	{
-		return (new \PhpParser\PrettyPrinter\Standard())->prettyPrint(
-			$this->traverser->traverse($this->ast)
-		);
-	}
-
-	/**
-	 * Save configuration
-	 *
-	 * @return bool
-	 */
-	public function save(): bool {
-		return $this->file_put_file_contents($this->file, '<?php' . "\n" . (string)$this);
-	}
-
-
 }
