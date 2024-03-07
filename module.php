@@ -80,14 +80,12 @@
 				return error('%(what)s must be enabled to install %(app)s',
 					['what' => 'MySQL', 'app' => static::APP_NAME]);
 			}
-			$docroot = $this->getDocumentRoot($hostname, $path);
-			if (!$docroot) {
-				return error("failed to detect document root for `%s'", $hostname);
-			}
 
 			if (!$this->parseInstallOptions($opts, $hostname, $path)) {
 				return false;
 			}
+
+			$docroot = $this->getDocumentRoot($hostname, $path);
 
 			$args = [
 				'mode'    => 'download',
