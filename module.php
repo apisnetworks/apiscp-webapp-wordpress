@@ -472,7 +472,7 @@
 				return null;
 			}
 
-			if (null === ($matches = json_decode($ret['stdout'], true))) {
+			if (null === ($matches = json_decode(str_replace(':""', ':null', $ret['stdout']), true))) {
 				dlog('Failed decode results: %s', var_export($ret, true));
 				return nerror('Failed to decode %s output', $type);
 			}
