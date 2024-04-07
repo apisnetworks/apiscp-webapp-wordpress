@@ -318,7 +318,7 @@
 		 */
 		protected function setFsMethod(string $approot, $mode): bool
 		{
-			$method = \in_array($mode, [false, 'learn', 'write'], true) ? 'direct' : false;
+			$method = \in_array($mode, [false, 'learn', 'write', null /* release */], true) ? 'direct' : false;
 			return $this->updateConfiguration($approot, ['FS_METHOD' => $method]);
 		}
 
