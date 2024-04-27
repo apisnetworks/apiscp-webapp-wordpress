@@ -768,7 +768,7 @@
 				$docroot, '-r %(code)s 3>&1-', ['code' => $code],
 			);
 
-			if (!$ret['success']) {
+			if (empty($ret['stdout']) && !$ret['success']) {
 				return error("failed to obtain WP configuration for `%s': %s", $docroot, $ret['stderr']);
 			}
 
