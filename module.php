@@ -1496,8 +1496,7 @@
 				return $ver;
 			}
 			$url = self::VERSION_CHECK_URL;
-			$context = stream_context_create(['http' => ['timeout' => 5]]);
-			$contents = file_get_contents($url, false, $context);
+			$contents = file_get_contents($url);
 			if (!$contents) {
 				return array();
 			}
