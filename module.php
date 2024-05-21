@@ -150,7 +150,10 @@
 				return error('failed to create database structure: %s', coalesce($ret['stderr'], $ret['stdout']));
 			}
 
-			$this->initializeMeta($docroot, $opts);
+			// @TODO - move to post-install wrapper
+			// Setting meta concludes UI progress check,
+			// postpone so features like git are present in UI without refresh
+			defer($_, fn() => $this->initializeMeta($docroot, $opts));
 			if (!file_exists($this->domain_fs_path() . "/${docroot}/.htaccess")) {
 				$this->file_touch("${docroot}/.htaccess");
 			}
