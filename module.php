@@ -190,8 +190,6 @@
 				$this->file_create_directory($docroot . '/wp-content/cache');
 			}
 			// by default, let's only open up ACLs to the bare minimum
-			$this->fortify($hostname, $path, 'max');
-
 			$this->notifyInstalled($hostname, $path, $opts);
 
 			return info(Messages::MSG_CHECKPOINT_APP_INSTALLED, ['app' => static::APP_NAME, 'email' => $opts['email']]);
