@@ -440,18 +440,24 @@
 				}
 				$name = $match['name'];
 				$version = $match['version'];
+
+				if (empty($version)) {
+					warn([':msg_wordpress_asset_versionless', "Theme or plugin `%(name)s' is versionless"],
+						['name' => $name]);
+				}
+
 				if (!$versions = $this->pluginVersions($name)) {
 					// commercial plugin
 					if (empty($match['update_version'])) {
 						$match['update_version'] = $match['version'];
 					}
 
-					$versions = [$match['version'], $match['update_version']];
+					$versions = array_filter([$version, $match['update_version']]);
 				}
 				$pluginmeta[$name] = [
 					'version' => $version,
-					'next'    => Versioning::nextVersion($versions, $version),
-					'max'     => $this->pluginInfo($name)['version'] ?? end($versions),
+					'next'    => Versioning::nextVersion($versions, (string)$version),
+					'max'     => (string)($this->pluginInfo($name)['version'] ?? end($versions)),
 					'active'  => $match['status'] !== 'inactive'
 				];
 				// dev version may be present
@@ -1266,19 +1272,22 @@
 				}
 				$name = $match['name'];
 				$version = $match['version'];
+				if (empty($version)) {
+					warn([':msg_wordpress_asset_versionless', "Theme or plugin `%(name)s' is versionless"], ['name' => $name]);
+				}
 				if (!$versions = $this->themeVersions($name)) {
 					// commercial themes
 					if (empty($match['update_version'])) {
 						$match['update_version'] = $match['version'];
 					}
 
-					$versions = [$match['version'], $match['update_version']];
+					$versions = array_filter([$version, $match['update_version']]);
 				}
 
 				$themes[$name] = [
 					'version' => $version,
-					'next'    => Versioning::nextVersion($versions, $version),
-					'max'     => $this->themeInfo($name)['version'] ?? end($versions)
+					'next'    => Versioning::nextVersion($versions, (string)$version),
+					'max'     => (string)($this->themeInfo($name)['version'] ?? end($versions))
 				];
 				// dev version may be present
 				$themes[$name]['current'] = version_compare((string)array_get($themes, "${name}.max",
