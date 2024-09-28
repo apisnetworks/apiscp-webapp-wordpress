@@ -37,6 +37,14 @@
 		const PLUGIN_VERSION_CHECK_URL = 'https://api.wordpress.org/plugins/info/1.0/%plugin%.json';
 		const THEME_VERSION_CHECK_URL = 'https://api.wordpress.org/themes/info/1.2/?action=theme_information&request[slug]=%theme%&request[fields][versions]=1';
 		const DEFAULT_VERSION_LOCK = 'none';
+		const ERR_LANGUAGE_UPDATE_FAILED = [
+			':err_wordpress_language_update_failed',
+			'language update failed: %s'
+		];
+		const ERR_LANGUAGE_UPDATE_FAILED_SP = [
+			':err_wordpress_language_update_failed_named',
+			'language update failed for %(name)s: %(msg)s'
+		];
 
 		protected $aclList = array(
 			'min' => array(
@@ -977,7 +985,12 @@
 					return error("theme update failed: `%s'", coalesce($ret['stderr'], $ret['stdout']));
 				}
 
-				return $ret['success'];
+				$ret = $this->execCommand($docroot, 'language theme update --all');
+				if (!$ret['success']) {
+					warn(self::ERR_LANGUAGE_UPDATE_FAILED, coalesce($ret['stderr'], $ret['stdout']));
+				}
+
+				return true;
 			}
 
 			$status = 1;
@@ -1032,7 +1045,13 @@
 				if (!$ret['success']) {
 					error("failed to update theme `%s': %s", $name, coalesce($ret['stderr'], $ret['stdout']));
 				}
+
 				$status &= $ret['success'];
+
+				$ret = $this->execCommand($docroot, 'language theme update %s', ['name' => $name]);
+				if (!$ret['success']) {
+					warn("language update failed for %(name)s: `%(err)s'", ['name' => $name, 'err' => coalesce($ret['stderr'], $ret['stdout'])]);
+				}
 			}
 
 			return (bool)$status;
@@ -1101,6 +1120,11 @@
 					return error("plugin update failed: `%s'", coalesce($ret['stderr'], $ret['stdout']));
 				}
 
+				$ret = $this->execCommand($docroot, 'language plugin update --all');
+				if (!$ret['success']) {
+					warn(self::ERR_LANGUAGE_UPDATE_FAILED, coalesce($ret['stderr'], $ret['stdout']));
+				}
+
 				return $ret['success'];
 			}
 
@@ -1110,7 +1134,6 @@
 			}
 			$plugins = $plugins ?: array_keys($allplugininfo);
 			foreach ($plugins as $plugin) {
-
 				$version = null;
 				$name = $plugin['name'] ?? $plugin;
 				$pluginInfo = $allplugininfo[$name];
@@ -1141,6 +1164,7 @@
 					$cmd .= ' --version=%(version)s';
 					$args['version'] = $version;
 				}
+
 				$cmd .= ' ' . implode(' ', $flags);
 				$ret = $this->execCommand($docroot, $cmd, $args);
 
@@ -1156,8 +1180,15 @@
 
 				if (!$ret['success']) {
 					error("failed to update plugin `%s': %s", $name, coalesce($ret['stderr'], $ret['stdout']));
+
 				}
 				$status &= $ret['success'];
+
+				$ret = $this->execCommand($docroot, 'language plugin update %s', ['name' => $name]);
+				if (!$ret['success']) {
+					warn("language update failed for %(name)s: `%(err)s'",
+						['name' => $name, 'err' => coalesce($ret['stderr'], $ret['stdout'])]);
+				}
 			}
 
 			return (bool)$status;
@@ -1213,17 +1244,23 @@
 			// Sanity check as WP-CLI is known to fail while producing a 0 exit code
 			if ($oldversion === $this->get_version($hostname, $path) &&
 				!$this->is_current($oldversion, Versioning::asMajor($oldversion))) {
-				return error('Failed to update WordPress - old version is same as new version - %s! ' .
-					'Diagnostics: (stderr) %s (stdout) %s', $oldversion, $ret['stderr'], $ret['stdout']);
+				return error(Messages::ERR_UPDATE_FAILED_VERSION_SAME, [
+					'app' => static::APP_NAME, 'version' => $oldversion, 'stderr' => $ret['stderr'], 'stdout' => $ret['stdout']
+				]);
 			}
 
-			info('updating WP database if necessary');
+			debug('updating WP database if necessary');
 			$ret = $this->execCommand($docroot, 'core update-db');
 			$this->shareOwnershipSystemCheck($docroot);
 
 			if (!$ret['success']) {
 				return warn('failed to update WP database - ' .
 					'login to WP admin panel to manually perform operation');
+			}
+
+			$ret = $this->execCommand($docroot, 'language core update');
+			if (!$ret['success']) {
+				warn(self::ERR_LANGUAGE_UPDATE_FAILED, coalesce($ret['stderr'], $ret['stdout']));
 			}
 
 			return $ret['success'];
@@ -1251,7 +1288,7 @@
 		{
 			$docroot = $this->getAppRoot($hostname, $path);
 			if (!$docroot) {
-				return error('invalid WP location');
+				return error(Messages::ERR_PATH_INVALID_WEBAPP_TYPE, ['path' => $docroot, 'app' => static::APP_NAME]);
 			}
 
 			$matches = $this->assetListWrapper($docroot, 'theme', [
@@ -1624,6 +1661,114 @@
 
 			$assets = $this->getSkiplist($approot, $type);
 			return isset($assets[$name]);
+		}
+
+		/**
+		 * Install language pack for WordPress
+		 *
+		 * @param string $hostname
+		 * @param string $path
+		 * @param string $lang
+		 * @return bool
+		 */
+		public function install_language(string $hostname, string $path, string $lang): bool
+		{
+			$approot = $this->getAppRoot($hostname, $path);
+			if (!$approot) {
+				return error('invalid WP location');
+			}
+
+			$args = array(
+				'lang' => $lang
+			);
+			$cmd = 'language core install %(lang)s --activate';
+			$ret = $this->execCommand($approot, $cmd, $args);
+			if (!$ret['success']) {
+				return error("failed to install language `%(lang)s': %(err)s", [
+					'lang' => $lang,
+					'err' => coalesce($ret['stderr'], $ret['stdout'])
+				]);
+			}
+
+			foreach(['plugin', 'theme'] as $type) {
+				$ret = $this->execCommand($approot, "language {$type} install --all %(lang)s", ['lang' => $lang]);
+				if (!$ret['success']) {
+					warn("failed to install language `%(lang)s' for %(type)s: %(err)s", [
+						'lang' => $lang,
+						'type' => $type,
+						'err'  => coalesce($ret['stderr'], $ret['stdout'])
+					]);
+				}
+			}
+
+			return info("installed language `%s'", $lang);
+		}
+
+		/**
+		 * Enumerate information about languages installed in core
+		 *
+		 * @param string $hostname
+		 * @param string $path
+		 * @param string $lang target language
+		 * @return array
+		 */
+		public function language_status(string $hostname, string $path = '', string $lang = null): array
+		{
+
+			$approot = $this->getAppRoot($hostname, $path);
+			if (!$approot) {
+				return error('invalid WP location');
+			}
+
+			$ret = $this->assetListWrapper($approot, 'language core', ['status', 'update', 'updated', 'language', 'native_name']);
+			$langs = [];
+			foreach ($ret as $meta) {
+				$langs[$meta['language']] = array_except($meta, ['language']);
+			}
+
+			return $lang ? array_get($langs, $lang, []) : $langs;
+		}
+
+		/**
+		 * Remove language from WordPress install
+		 *
+		 * @param string $hostname
+		 * @param string $path
+		 * @param string $lang
+		 * @param bool   $force
+		 * @return bool
+		 */
+		public function uninstall_language(string $hostname, string $path, string $lang, bool $force = true): bool
+		{
+			$approot = $this->getAppRoot($hostname, $path);
+			if (!$approot) {
+				return error('invalid WP location');
+			}
+
+			$args = array(
+				'lang' => $lang
+			);
+			$cmd = 'language core uninstall %(lang)s';
+			$ret = $this->execCommand($approot, $cmd, $args);
+			if (!$ret['success']) {
+				return error("failed to uninstall language `%(lang)s': %(err)s", [
+					'lang' => $lang,
+					'err'  => coalesce($ret['stderr'], $ret['stdout'])
+				]);
+			}
+
+			foreach (['plugin', 'theme'] as $type) {
+				$ret = $this->execCommand($approot, "language {$type} uninstall --all %(lang)s", ['lang' => $lang]);
+				if (!$ret['success']) {
+					warn("failed to uninstall language `%(lang)s' for %(type)s: %(err)s", [
+						'lang' => $lang,
+						'type' => $type,
+						'err'  => coalesce($ret['stderr'], $ret['stdout'])
+					]);
+				}
+			}
+
+			return info("uninstalled language `%s'", $lang);
 		}
 
 		/**
