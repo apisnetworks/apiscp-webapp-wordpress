@@ -167,8 +167,8 @@
 			// @TODO - move to post-install wrapper
 			// Setting meta concludes UI progress check,
 			// postpone so features like git are present in UI without refresh
-			if (!file_exists($this->domain_fs_path() . "/${docroot}/.htaccess")) {
-				$this->file_touch("${docroot}/.htaccess");
+			if (!file_exists($this->domain_fs_path() . "/{$docroot}/.htaccess")) {
+				$this->file_touch("{$docroot}/.htaccess");
 			}
 
 			$wpcli = Wpcli::instantiateContexted($this->getAuthContext());
@@ -469,7 +469,7 @@
 					'active'  => $match['status'] !== 'inactive'
 				];
 				// dev version may be present
-				$pluginmeta[$name]['current'] = version_compare((string)array_get($pluginmeta, "${name}.max",
+				$pluginmeta[$name]['current'] = version_compare((string)array_get($pluginmeta, "{$name}.max",
 					'99999999.999'), (string)$version, '<=') ?:
 					(bool)Versioning::current($versions, $version);
 			}
@@ -1327,7 +1327,7 @@
 					'max'     => (string)($this->themeInfo($name)['version'] ?? end($versions))
 				];
 				// dev version may be present
-				$themes[$name]['current'] = version_compare((string)array_get($themes, "${name}.max",
+				$themes[$name]['current'] = version_compare((string)array_get($themes, "{$name}.max",
 					'99999999.999'), (string)$version, '<=') ?:
 					(bool)Versioning::current($versions, $version);
 			}
@@ -1623,7 +1623,7 @@
 			$contents = implode("\n", $this->skiplistContents($approot));
 			$contents .= "\n" . $type . ($type ? ':' : '') . $name;
 
-			return $this->file_put_file_contents("${approot}/" . self::ASSET_SKIPLIST, ltrim($contents));
+			return $this->file_put_file_contents("{$approot}/" . self::ASSET_SKIPLIST, ltrim($contents));
 		}
 
 		/**
@@ -1648,8 +1648,8 @@
 			}
 
 			$skiplist = array_flip($this->skiplistContents($approot));
-			unset($skiplist["${type}:${name}"],$skiplist[$name]);
-			return $this->file_put_file_contents("${approot}/" . self::ASSET_SKIPLIST, implode("\n", array_keys($skiplist)));
+			unset($skiplist["{$type}:{$name}"],$skiplist[$name]);
+			return $this->file_put_file_contents("{$approot}/" . self::ASSET_SKIPLIST, implode("\n", array_keys($skiplist)));
 		}
 
 
@@ -1794,7 +1794,7 @@
 				$dapproot = $this->getAppRoot($dhostname, $dpath);
 				// nesting directories is permitted, denesting will fail in checkDocroot() below
 				// otherwise add reciprocal strpos() check
-				if ($sapproot === $dapproot || 0 === strpos("${dapproot}/", "${sapproot}/")) {
+				if ($sapproot === $dapproot || 0 === strpos("{$dapproot}/", "{$sapproot}/")) {
 					return error("Source `%(source)s' and target `%(target)s' are the same or nested",
 						['source' => $sapproot, 'target' => $dapproot]);
 				}
@@ -1810,7 +1810,7 @@
 				$this->checkDocroot($dapproot);
 
 				// @todo $opts['link-uploads']
-				$this->file_copy("${sapproot}/", $dapproot, true);
+				$this->file_copy("{$sapproot}/", $dapproot, true);
 				$db = DatabaseGenerator::mysql($this->getAuthContext(), $dhostname);
 				$db->create();
 				$db->autoRollback = true;

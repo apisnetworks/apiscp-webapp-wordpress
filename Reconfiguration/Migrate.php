@@ -45,7 +45,7 @@
 					'olddomain'   => $oldHostname = preg_quote(array_get($this->getComponents(), 'host', $this->app->getHostname())),
 					'oldpath'     => $oldPath = preg_quote(rtrim(array_get($this->getComponents(), 'path', ''), '/')),
 					'newdomain'   => $newHostname,
-					'newpath'     => $newPath = ($path ? "/${path}" : $path)
+					'newpath'     => $newPath = ($path ? "/{$path}" : $path)
 				]);
 
 			if (!array_get($ret, 'success', false)) {
