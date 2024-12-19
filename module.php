@@ -56,7 +56,8 @@
 				'wp-content/uploads',
 				'wp-content/cache',
 				'wp-content/wflogs',
-				'wp-content/updraft'
+				'wp-content/updraft',
+				'wp-content/w3tc-config/master.php'
 			)
 		);
 

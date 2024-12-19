@@ -15,22 +15,20 @@ namespace Module\Support\Webapps\App\Type\Wordpress\Reconfiguration;
 
 use Module\Support\Webapps\App\Type\Unknown\Reconfiguration\User as Base;
 use Module\Support\Webapps\App\Type\Wordpress\DefineReplace;
+use Module\Support\Webapps\Contracts\DeferredReconfiguration;
 
-class User extends Base
+class User extends Base implements DeferredReconfiguration
 {
-	public function handle(&$val): bool
+	public function apply(mixed &$val): bool
 	{
-		if (!parent::handle($val)) {
-			return false;
-		}
-
 		$definer = $this->createDefiner();
 		try {
 			$definer->set("FTP_USER", "{$val}@{$this->app->getHostname()}");
+
 			return $definer->save();
 		} catch (\PhpParser\Error $e) {
 			return error("Failed parsing %(file)s - cannot update %(directive)s", [
-				'file' => $this->app->getAppRoot() . '/wp-config.php',
+				'file'      => $this->app->getAppRoot() . '/wp-config.php',
 				'directive' => 'FTP_USER'
 			]);
 		} catch (\ArgumentError $e) {
@@ -39,6 +37,7 @@ class User extends Base
 			]);
 		}
 	}
+
 
 	private function createDefiner(): DefineReplace
 	{
