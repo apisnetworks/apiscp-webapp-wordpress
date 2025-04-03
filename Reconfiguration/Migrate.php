@@ -90,6 +90,6 @@
 			if (!$ret['success']) {
 				fatal("Failed to query site: %s", coalesce($ret['stderr'], $ret['stdout']));
 			}
-			return $components = parse_url(rtrim($url)) ?: [];
+			return parse_url(rtrim($url)) ?: [];
 		}
 	}

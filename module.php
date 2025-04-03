@@ -1825,6 +1825,15 @@
 				$db->autoRollback = true;
 
 				$this->mysql_clone($oldDbConfig['db'], $db->database);
+				// update ASAP to ensure any rollback is applied against new user
+				$this->updateConfiguration($dapproot, [
+					'DB_NAME'     => $db->database,
+					'DB_USER'     => $db->username,
+					'DB_PASSWORD' => $db->password,
+					'DB_HOST'     => $db->hostname,
+				]);
+				$db->autoRollback = false;
+
 				$sapp = Loader::fromDocroot('wordpress', $sapproot, $this->getAuthContext());
 				$dapp = Loader::fromDocroot('wordpress', $dapproot, $this->getAuthContext());
 
@@ -1839,13 +1848,6 @@
 					return "$k => $v";
 				}, $vals)));
 				$dapp->reconfigure($vals);
-				$this->updateConfiguration($dapproot, [
-					'DB_NAME'     => $db->database,
-					'DB_USER'     => $db->username,
-					'DB_PASSWORD' => $db->password,
-					'DB_HOST'     => $db->hostname,
-				]);
-				$db->autoRollback = false;
 				$cli = Wpcli::instantiateContexted($this->getAuthContext());
 				$cli->exec($dapproot, 'config shuffle-salts');
 				$dapp->reconfigure(['migrate' => $dhostname . '/' . $dpath]);
