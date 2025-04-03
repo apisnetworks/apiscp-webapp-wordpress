@@ -1800,9 +1800,17 @@
 						['source' => $sapproot, 'target' => $dapproot]);
 				}
 
+				$oldDbConfig = $this->db_config($shostname, $spath);
 				if (!empty($opts['clean']) && is_dir($this->domain_fs_path($dapproot))) {
 					if ($this->webapp_valid($dhostname, $dpath)) {
-						$this->webapp_uninstall($dhostname, $dpath);
+						// verify dest and source DBs aren't identical
+						$dbConfig = $this->db_config($dhostname, $dpath);
+						$mode = 'all';
+						if ($dbConfig['db'] === $oldDbConfig['db']) {
+							warn("Database in destination is same as source. Bypassing database removal");
+							$mode = 'files';
+						}
+						$this->webapp_uninstall($dhostname, $dpath, $mode);
 					} else {
 						$this->file_delete($dapproot, true);
 					}
@@ -1815,7 +1823,7 @@
 				$db = DatabaseGenerator::mysql($this->getAuthContext(), $dhostname);
 				$db->create();
 				$db->autoRollback = true;
-				$oldDbConfig = $this->db_config($shostname, $spath);
+
 				$this->mysql_clone($oldDbConfig['db'], $db->database);
 				$sapp = Loader::fromDocroot('wordpress', $sapproot, $this->getAuthContext());
 				$dapp = Loader::fromDocroot('wordpress', $dapproot, $this->getAuthContext());

@@ -78,12 +78,8 @@
 
 		protected function getComponents(): array
 		{
-			static $components;
-			if (null !== $components) {
-				return $components;
-			}
 			$url = array_get(
-				Wpcli::instantiateContexted($this->getAuthContext())->exec(
+				$ret = Wpcli::instantiateContexted($this->getAuthContext())->exec(
 					$this->app->getAppRoot(),
 					'option get siteurl'
 				),
@@ -91,6 +87,9 @@
 				$this->app->getHostname()
 			);
 
+			if (!$ret['success']) {
+				fatal("Failed to query site: %s", coalesce($ret['stderr'], $ret['stdout']));
+			}
 			return $components = parse_url(rtrim($url)) ?: [];
 		}
 	}
