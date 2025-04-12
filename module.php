@@ -162,7 +162,7 @@
 				if (!array_get($opts, 'hold')) {
 					$dbCred->rollback();
 				}
-				return error(Messages::ERR_DATABASE_CREATION_FAILED, coalesce($ret['stderr'], $ret['stdout']));
+				return error(Messages::ERR_DATABASE_CREATION_FAILED, ['msg' => coalesce($ret['stderr'], $ret['stdout'])]);
 			}
 
 			// @TODO - move to post-install wrapper
